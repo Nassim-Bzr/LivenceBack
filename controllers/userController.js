@@ -93,12 +93,18 @@ export const getUserById = async (req, res) => {
 // Mettre à jour un utilisateur
 export const updateUser = async (req, res) => {
   try {
-    const { nom, email, password } = req.body;
+    const { nom, email, password, role } = req.body;
     const user = await User.findByPk(req.params.id);
     
     if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
 
     const updateData = { nom, email };
+    
+    // Ajouter le rôle à la mise à jour si présent
+    if (role) {
+      updateData.role = role;
+    }
+    
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
     }

@@ -18,12 +18,55 @@ export const getAppartementBySlug = async (req, res) => {
 // ➤ Ajouter un appartement
 export const ajouterAppartement = async (req, res) => {
   try {
+    // Vérification uniquement pour le slug
+    if (req.body.slug) {
+      const existingSlug = await Appartement.findOne({
+        where: { slug: req.body.slug }
+      });
+      
+      if (existingSlug) {
+        return res.status(400).json({ 
+          message: "Un appartement avec ce slug existe déjà" 
+        });
+      }
+    }
+
     const appartement = await Appartement.create(req.body);
     res.status(201).json(appartement);
   } catch (error) {
     res.status(500).json({ message: "Erreur lors de l'ajout de l'appartement", error });
   }
 };
+
+// ➤ Mettre à jour un appartement
+export const updateAppartement = async (req, res) => {
+  try {
+    const appartement = await Appartement.findByPk(req.params.id);
+    if (!appartement) return res.status(404).json({ message: "Appartement non trouvé" });
+
+    // Si un nouveau slug est fourni, vérifier qu'il n'existe pas déjà
+    if (req.body.slug && req.body.slug !== appartement.slug) {
+      const existingSlug = await Appartement.findOne({
+        where: { 
+          slug: req.body.slug,
+          id: { [Op.ne]: req.params.id } // Exclure l'appartement actuel
+        }
+      });
+      
+      if (existingSlug) {
+        return res.status(400).json({ 
+          message: "Un appartement avec ce slug existe déjà" 
+        });
+      }
+    }
+
+    await appartement.update(req.body);
+    res.status(200).json({ message: "Appartement mis à jour avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur lors de la mise à jour de l'appartement", error });
+  }
+};
+
 // 🔹 Ajouter une date bloquée (bloquer un appart)
 export const bloquerDate = async (req, res) => {
   const { appartementId, dates } = req.body; // Liste de dates à bloquer

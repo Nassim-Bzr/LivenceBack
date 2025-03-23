@@ -13,6 +13,7 @@ import Appartement from "./models/Appartement.js";
 import userRoutes from "./routes/userRoutes.js";
 import reservationRoutes from "./routes/reservationRoutes.js";
 import appartementRoutes from "./routes/appartementRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 
 dotenv.config();
 
@@ -34,13 +35,14 @@ app.use(express.json());
 app.use("/users", userRoutes);
 app.use("/reservations", reservationRoutes);
 app.use("/api/appartements", appartementRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Démarrer le serveur
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {
   try {
     console.log("🔄 Synchronisation de la base de données...");
-    await sequelize.sync({ alter: true }); // Mettre à jour les tables sans tout supprimer
+    await sequelize.sync({ alter: false }); // Éviter de modifier les tables existantes
     console.log(`✅ Serveur démarré sur http://localhost:${PORT}`);
   } catch (error) {
     console.error("❌ Erreur de connexion à MySQL :", error);

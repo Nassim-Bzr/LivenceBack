@@ -10,13 +10,11 @@ const Appartement = sequelize.define("Appartement", {
   },
   smoobuId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    unique: true, // Chaque appartement a un ID Smoobu unique
+    allowNull: true,
   },
   slug: { 
     type: DataTypes.STRING, 
     allowNull: true, // temporairement
-    unique: true
   },
   titre: {
     type: DataTypes.STRING,
