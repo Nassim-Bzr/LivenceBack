@@ -1,50 +1,70 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import cookieParser from "cookie-parser"; // 🔥 Import nécessaire pour gérer les cookies
-
-import sequelize from "./config/database.js";
-
-// Import des modèles pour qu'ils soient enregistrés avant la synchronisation
-import User from "./models/User.js";
-import Reservation from "./models/Reservation.js";
-import Appartement from "./models/Appartement.js";
-
+import cookieParser from "cookie-parser";
+import session from "express-session";
+import http from "http";
+import { Server } from "socket.io";
+import { sequelize } from "./models/index.js";
 import userRoutes from "./routes/userRoutes.js";
 import reservationRoutes from "./routes/reservationRoutes.js";
 import appartementRoutes from "./routes/appartementRoutes.js";
-import messageRoutes from "./routes/messageRoutes.js";
 
 dotenv.config();
 
-
 const app = express();
-app.use(express.json());
-app.use(cookieParser()); // 🔥 Nécessaire pour lire les cookies
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
 
-// ✅ Configuration CORS CORRECTE
-
-app.use(cors({
-  origin: "http://localhost:3000",  // Autoriser uniquement le front React
-  credentials: true // Permettre les cookies et tokens dans les requêtes
+// Configuration de la session
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'votre_secret_ici',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 heures
+  }
 }));
 
+// Middleware
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
-// Routes API
+// Routes
 app.use("/users", userRoutes);
 app.use("/reservations", reservationRoutes);
 app.use("/api/appartements", appartementRoutes);
-app.use("/api/messages", messageRoutes);
 
-// Démarrer le serveur
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, async () => {
-  try {
-    console.log("🔄 Synchronisation de la base de données...");
-    await sequelize.sync({ alter: false }); // Éviter de modifier les tables existantes
-    console.log(`✅ Serveur démarré sur http://localhost:${PORT}`);
-  } catch (error) {
-    console.error("❌ Erreur de connexion à MySQL :", error);
-  }
+// Gestion des connexions Socket.IO
+io.on("connection", (socket) => {
+  console.log("Un utilisateur s'est connecté");
+
+  socket.on("disconnect", () => {
+    console.log("Un utilisateur s'est déconnecté");
+  });
 });
+
+// Synchronisation de la base de données et démarrage du serveur
+const PORT = process.env.PORT || 5000;
+
+sequelize.sync({ alter: true })
+  .then(() => {
+    console.log("Base de données synchronisée");
+    server.listen(PORT, () => {
+      console.log(`Serveur démarré sur le port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error("Erreur lors de la synchronisation de la base de données:", error);
+  });
