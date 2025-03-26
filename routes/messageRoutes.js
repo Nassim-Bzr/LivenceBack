@@ -3,7 +3,8 @@ import {
   sendMessage, 
   getUserConversations, 
   getMessagesBetweenUsers, 
-  getUnreadMessagesCount 
+  getUnreadMessagesCount,
+  markMessagesAsRead
 } from '../controllers/messageController.js';
 
 const router = express.Router();
@@ -19,5 +20,8 @@ router.get('/utilisateur/:otherUserId', getMessagesBetweenUsers);
 
 // Route pour récupérer le nombre de messages non lus
 router.get('/non-lus/count', getUnreadMessagesCount);
+
+// Route pour marquer des messages comme lus
+router.post('/marquer-lus', markMessagesAsRead);
 
 export default router; 

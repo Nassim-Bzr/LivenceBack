@@ -67,6 +67,9 @@ io.on("connection", (socket) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.id;
       
+      // Stocker l'ID de l'utilisateur dans l'objet socket
+      socket.userId = userId;
+      
       // Stocker la socket de l'utilisateur
       if (!connectedUsers.has(userId)) {
         connectedUsers.set(userId, new Set());
@@ -95,6 +98,17 @@ io.on("connection", (socket) => {
       // Envoyer à toutes les sockets de cet utilisateur
       io.to(`user_${receiverId}`).emit("new_message", data);
     }
+  });
+  
+  // Gérer les notifications "est en train d'écrire"
+  socket.on("typing_start", (receiverId) => {
+    console.log(`Utilisateur ${socket.userId} est en train d'écrire à l'utilisateur ${receiverId}`);
+    io.to(`user_${receiverId}`).emit("typing_start", socket.userId);
+  });
+  
+  socket.on("typing_stop", (receiverId) => {
+    console.log(`Utilisateur ${socket.userId} a arrêté d'écrire à l'utilisateur ${receiverId}`);
+    io.to(`user_${receiverId}`).emit("typing_stop", socket.userId);
   });
   
   // Gestion de la déconnexion
