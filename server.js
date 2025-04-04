@@ -11,6 +11,8 @@ import reservationRoutes from "./routes/reservationRoutes.js";
 import appartementRoutes from "./routes/appartementRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import jwt from "jsonwebtoken";
+import authRoutes from "./routes/authRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 dotenv.config();
 
@@ -49,9 +51,19 @@ app.use(cookieParser());
 
 // Routes
 app.use("/users", userRoutes);
-app.use("/reservations", reservationRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/appartements", appartementRoutes);
-app.use("/messages", messageRoutes);
+
+// Middleware pour ajouter l'instance socket.io à toutes les requêtes
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+// Routes qui nécessitent socket.io
+app.use("/api/reservations", reservationRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Middleware pour vérifier le token JWT et stocker les sockets par ID utilisateur
 const connectedUsers = new Map();

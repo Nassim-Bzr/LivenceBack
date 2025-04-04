@@ -3,6 +3,7 @@ import { ajouterAppartement, getAppartements, getAppartementById } from "../cont
 import { ajouterDisponibilites, getDisponibilites } from "../controllers/appartementController.js";
 import { bloquerDate, verifierDisponibilite } from "../controllers/appartementController.js";
 import { updateAppartement } from "../controllers/appartementController.js";
+import { deleteAppartement } from "../controllers/appartementController.js";
 
 import { getAppartementBySlug } from "../controllers/appartementController.js";
 
@@ -13,7 +14,7 @@ router.get("/", getAppartements);
 router.get("/:id", getAppartementById);
 router.get("/slug/:slug", getAppartementBySlug);
 router.put("/:id", updateAppartement);
-
+router.delete("/:id", deleteAppartement);
 // 🔹 Bloquer des dates (admin)
 router.post("/bloquer", bloquerDate);
 

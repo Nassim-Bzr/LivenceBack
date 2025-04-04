@@ -1,5 +1,6 @@
 import { Message, User } from "../models/index.js";
 import jwt from "jsonwebtoken";
+import { Op } from "sequelize";
 
 // Fonction pour envoyer un message
 export const sendMessage = async (req, res) => {
@@ -100,37 +101,88 @@ export const getUserConversations = async (req, res) => {
     }
     
     const userId = decoded.id;
+    const userRole = decoded.role;
     
-    // Trouver tous les utilisateurs avec qui l'utilisateur courant a échangé des messages
-    const sentMessages = await Message.findAll({
-      where: { senderId: userId },
-      attributes: ['receiverId'],
-      group: ['receiverId']
+    console.log(`Recherche des conversations pour l'utilisateur ${userId} (${userRole})`);
+    
+    // Trouver tous les messages impliquant l'utilisateur
+    const messages = await Message.findAll({
+      where: {
+        [Op.or]: [
+          { senderId: userId },
+          { receiverId: userId }
+        ]
+      },
+      include: [
+        { model: User, as: 'sender', attributes: ['id', 'nom', 'email', 'role'] },
+        { model: User, as: 'receiver', attributes: ['id', 'nom', 'email', 'role'] }
+      ],
+      order: [['createdAt', 'DESC']]
     });
     
-    const receivedMessages = await Message.findAll({
-      where: { receiverId: userId },
-      attributes: ['senderId'],
-      group: ['senderId']
+    console.log(`${messages.length} messages trouvés au total`);
+    
+    // Créer un Map pour stocker les conversations uniques
+    const conversationsMap = new Map();
+    
+    // Parcourir tous les messages pour extraire les conversations uniques
+    messages.forEach(message => {
+      // Déterminer l'ID de l'autre utilisateur dans la conversation
+      const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+      
+      // Récupérer les infos de l'autre utilisateur
+      const otherUser = message.senderId === userId ? message.receiver : message.sender;
+      
+      // Si on n'a pas encore cette conversation
+      if (!conversationsMap.has(otherUserId)) {
+        conversationsMap.set(otherUserId, {
+          id: otherUserId,
+          nom: otherUser?.nom || 'Utilisateur inconnu',
+          email: otherUser?.email || '',
+          role: otherUser?.role || 'user',
+          lastMessage: message.contenu,
+          lastMessageDate: message.createdAt
+        });
+      } else {
+        // Si on a déjà cette conversation, mettre à jour le dernier message si celui-ci est plus récent
+        const existingConv = conversationsMap.get(otherUserId);
+        if (new Date(message.createdAt) > new Date(existingConv.lastMessageDate)) {
+          existingConv.lastMessage = message.contenu;
+          existingConv.lastMessageDate = message.createdAt;
+          conversationsMap.set(otherUserId, existingConv);
+        }
+      }
     });
     
-    // Extraire les IDs uniques
-    const contactIds = new Set([
-      ...sentMessages.map(msg => msg.receiverId),
-      ...receivedMessages.map(msg => msg.senderId)
-    ]);
+    // Convertir le Map en tableau
+    const conversations = Array.from(conversationsMap.values());
     
-    console.log(`Contacts trouvés: ${contactIds.size}`);
+    // Compter les messages non lus pour chaque conversation
+    const conversationsWithUnread = await Promise.all(
+      conversations.map(async (conv) => {
+        const unreadCount = await Message.count({
+          where: {
+            senderId: conv.id,
+            receiverId: userId,
+            lu: false
+          }
+        });
+        
+        return {
+          ...conv,
+          unreadCount
+        };
+      })
+    );
     
-    // Récupérer les informations des contacts
-    const contacts = await User.findAll({
-      where: { id: [...contactIds] },
-      attributes: ['id', 'nom', 'email', 'role']
-    });
+    // Trier les conversations par date du dernier message (plus récent en premier)
+    conversationsWithUnread.sort((a, b) => 
+      new Date(b.lastMessageDate) - new Date(a.lastMessageDate)
+    );
     
-    console.log(`Données de contacts récupérées: ${contacts.length}`);
+    console.log(`${conversationsWithUnread.length} conversations uniques trouvées`);
     
-    res.status(200).json(contacts);
+    res.status(200).json(conversationsWithUnread);
   } catch (error) {
     console.error("Erreur lors de la récupération des conversations:", error);
     res.status(500).json({ message: "Erreur lors de la récupération des conversations" });
@@ -166,7 +218,7 @@ export const getMessagesBetweenUsers = async (req, res) => {
     // Récupérer tous les messages entre les deux utilisateurs
     const messages = await Message.findAll({
       where: {
-        [Symbol.for('sequelize.or')]: [
+        [Op.or]: [
           { senderId: userId, receiverId: otherUserId },
           { senderId: otherUserId, receiverId: userId }
         ]
@@ -178,10 +230,10 @@ export const getMessagesBetweenUsers = async (req, res) => {
       ]
     });
     
-    console.log(`${messages.length} messages trouvés`);
+    console.log(`${messages.length} messages trouvés entre ${userId} et ${otherUserId}`);
     
-    // Marquer les messages non lus comme lus
-    await Message.update(
+    // Marquer les messages reçus non lus comme lus
+    const unreadCount = await Message.update(
       { lu: true },
       {
         where: {
@@ -191,6 +243,8 @@ export const getMessagesBetweenUsers = async (req, res) => {
         }
       }
     );
+    
+    console.log(`${unreadCount[0]} messages marqués comme lus`);
     
     res.status(200).json(messages);
   } catch (error) {

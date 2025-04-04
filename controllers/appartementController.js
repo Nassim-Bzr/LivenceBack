@@ -2,7 +2,6 @@ import Appartement from "../models/Appartement.js";
 import Disponibilite from "../models/Disponibilite.js";
 import { Op } from "sequelize";
 
-
 // ➤ Récupérer un appartement par SLUG
 export const getAppartementBySlug = async (req, res) => {
   try {
@@ -64,6 +63,28 @@ export const updateAppartement = async (req, res) => {
     res.status(200).json({ message: "Appartement mis à jour avec succès" });
   } catch (error) {
     res.status(500).json({ message: "Erreur lors de la mise à jour de l'appartement", error });
+  }
+};
+
+// ➤ Supprimer un appartement
+export const deleteAppartement = async (req, res) => {
+  try {
+    const appartement = await Appartement.findByPk(req.params.id);
+    if (!appartement) {
+      return res.status(404).json({ message: "Appartement non trouvé" });
+    }
+
+    // Supprimer d'abord les disponibilités associées
+    await Disponibilite.destroy({
+      where: { appartementId: req.params.id }
+    });
+
+    // Puis supprimer l'appartement
+    await appartement.destroy();
+    
+    res.status(200).json({ message: "Appartement et ses disponibilités supprimés avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur lors de la suppression de l'appartement", error });
   }
 };
 
@@ -129,6 +150,7 @@ export const ajouterDisponibilites = async (req, res) => {
     res.status(500).json({ message: "Erreur lors de l'ajout des disponibilités", error });
   }
 };
+
 export const getDisponibilites = async (req, res) => {
   const { appartementId } = req.params;
 
@@ -143,7 +165,6 @@ export const getDisponibilites = async (req, res) => {
     res.status(500).json({ message: "Erreur lors de la récupération des dates bloquées", error });
   }
 };
-
 
 // ➤ Récupérer tous les appartements
 export const getAppartements = async (req, res) => {
