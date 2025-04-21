@@ -3,6 +3,7 @@ import User from "./User.js";
 import Appartement from "./Appartement.js";
 import Reservation from "./Reservation.js";
 import Message from "./Message.js";
+import Notification from "./Notification.js";
 
 // 🔥 Définition des relations après les imports
 User.hasMany(Reservation, { foreignKey: "userId", as: "reservations" });

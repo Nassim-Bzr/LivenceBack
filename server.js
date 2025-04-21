@@ -20,7 +20,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "http://localhost:8081"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -44,7 +44,9 @@ app.use(session({
 // Middleware
 app.use(cors({
   origin: "http://localhost:3000",
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "Pragma", "Cache-Control", "Expires"]
 }));
 app.use(express.json());
 app.use(cookieParser());
@@ -143,13 +145,34 @@ io.on("connection", (socket) => {
 // Synchronisation de la base de données et démarrage du serveur
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync({ alter: true })
+// Synchroniser la base de données et créer les tables
+sequelize.authenticate()
   .then(() => {
-    console.log("Base de données synchronisée");
+    console.log('Connexion à la base de données établie avec succès.');
+    
+    // Utiliser alter: true au lieu de force: true pour mettre à jour les tables sans perdre les données
+    return sequelize.sync({ alter: true });
+  })
+  .then(() => {
+    console.log("Base de données synchronisée - Connexion réussie");
+    console.log("Tables mises à jour avec les nouvelles colonnes");
     server.listen(PORT, () => {
       console.log(`Serveur démarré sur le port ${PORT}`);
     });
   })
   .catch((error) => {
-    console.error("Erreur lors de la synchronisation de la base de données:", error);
+    console.error("Erreur lors de la connexion ou synchronisation de la base de données:", error);
   });
+
+// Gérer la fermeture propre
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal reçu: fermeture du serveur');
+  server.close(() => {
+    console.log('Serveur HTTP fermé');
+    // Fermer la connexion à la base de données
+    sequelize.close().then(() => {
+      console.log('Connexion à la base de données fermée');
+      process.exit(0);
+    });
+  });
+});
