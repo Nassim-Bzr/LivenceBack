@@ -390,4 +390,104 @@ export const markMessagesAsRead = async (req, res) => {
     console.error("Erreur lors du marquage des messages comme lus:", error);
     res.status(500).json({ message: "Erreur lors du marquage des messages comme lus" });
   }
+};
+
+// Nouvelle fonction pour contacter l'admin (support)
+export const contactAdmin = async (req, res) => {
+  try {
+    const { contenu, appartementId, type = "support" } = req.body;
+    
+    console.log("Requête de contact admin:", {
+      contenu: contenu ? contenu.substring(0, 20) + "..." : null,
+      appartementId,
+      type
+    });
+    
+    // Récupérer le token (depuis "token" cookie ou autorisation Bearer)
+    const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      console.error("Erreur d'authentification: Aucun token fourni");
+      return res.status(401).json({ message: "Non autorisé - Veuillez vous connecter" });
+    }
+    
+    // Vérifier et décoder le token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("Token décodé:", decoded);
+    } catch (error) {
+      console.error("Erreur de vérification du token:", error);
+      return res.status(401).json({ message: "Token invalide ou expiré" });
+    }
+    
+    const senderId = decoded.id;
+    
+    // Vérifier que l'utilisateur n'est pas lui-même un admin (ne devrait pas contacter le support)
+    const sender = await User.findByPk(senderId);
+    if (!sender) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+    
+    if (sender.role === "admin") {
+      return res.status(400).json({ message: "Les administrateurs ne peuvent pas contacter le support" });
+    }
+    
+    // Trouver l'admin (le premier utilisateur avec le rôle "admin")
+    const admin = await User.findOne({
+      where: { role: 'admin' }
+    });
+    
+    if (!admin) {
+      console.error("Aucun administrateur trouvé dans le système");
+      return res.status(404).json({ message: "Service de support non disponible actuellement" });
+    }
+    
+    const receiverId = admin.id;
+    
+    // Vérifier qu'on n'envoie pas à soi-même
+    if (senderId === receiverId) {
+      return res.status(400).json({ message: "Vous ne pouvez pas vous envoyer un message à vous-même" });
+    }
+    
+    // Créer le message
+    const message = await Message.create({
+      senderId,
+      receiverId,
+      contenu,
+      appartementId: appartementId || null,
+      type: type || "support" // Par défaut, c'est un message de support
+    });
+    
+    console.log(`Message de support créé avec succès: ID=${message.id}, destinataire admin ID=${receiverId}`);
+    
+    // Émettre un événement socket.io pour notification en temps réel
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user_${receiverId}`).emit('new_message', {
+        id: message.id,
+        senderId,
+        receiverId,
+        contenu,
+        appartementId: appartementId || null,
+        type: type || "support",
+        createdAt: message.createdAt,
+        lu: false
+      });
+      console.log("Notification socket envoyée à l'admin", receiverId);
+    } else {
+      console.warn("Impossible d'envoyer la notification socket: io non disponible");
+    }
+    
+    res.status(201).json({
+      message,
+      supportInfo: {
+        adminId: receiverId,
+        adminName: admin.nom
+      }
+    });
+  } catch (error) {
+    console.error("Erreur lors du contact du support:", error);
+    res.status(500).json({ message: "Erreur lors de l'envoi du message au support" });
+  }
 }; 

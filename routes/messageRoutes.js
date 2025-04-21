@@ -4,13 +4,17 @@ import {
   getUserConversations, 
   getMessagesBetweenUsers, 
   getUnreadMessagesCount,
-  markMessagesAsRead
+  markMessagesAsRead,
+  contactAdmin
 } from '../controllers/messageController.js';
 
 const router = express.Router();
 
 // Route pour envoyer un message
 router.post('/envoyer', sendMessage);
+
+// Route pour contacter le support (admin)
+router.post('/contacter-support', contactAdmin);
 
 // Route pour récupérer toutes les conversations d'un utilisateur
 router.get('/conversations', getUserConversations);
