@@ -41,6 +41,15 @@ const Reservation = sequelize.define("Reservation", {
     type: DataTypes.STRING,
     defaultValue: "en attente",
   },
+  guestsCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 1,
+  },
+  smoobuReservationId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: "ID de la réservation dans le système Smoobu",
+  },
 });
 
 // 🔥 Définition des associations
