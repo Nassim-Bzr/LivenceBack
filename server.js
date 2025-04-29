@@ -43,12 +43,13 @@ app.use(session({
 }));
 
 // Middleware
-app.use(cors({
-  origin: ["http://localhost:3000", "https://livence-project-booking.vercel.app"],
+const corsOptions = {
+  origin: ["http://localhost:3000", "http://localhost:8081", "https://livence-project-booking.vercel.app"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin", "Pragma", "Cache-Control", "Expires"]
-}));
+  allowedHeaders: ["Content-Type", "Authorization"]
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
