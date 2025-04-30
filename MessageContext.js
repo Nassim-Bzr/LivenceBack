@@ -13,7 +13,7 @@ export const MessageProvider = ({ children }) => {
 
   // Configuration d'axios avec le token
   const api = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: "https://livence-ef9188d2aef0.herokuapp.com/api",
     headers: {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` })
