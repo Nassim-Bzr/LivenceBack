@@ -44,10 +44,15 @@ app.use(session({
 
 // Middleware
 const corsOptions = {
-  origin: ["http://localhost:3000", "http://localhost:8081", "https://livence-project-booking.vercel.app"],
+  origin: [
+    "http://localhost:3000", 
+    "http://localhost:8081", 
+    "https://livence-project-booking.vercel.app",
+    "https://livence-project-booking-8ykrxq879-nassimbzrs-projects.vercel.app"
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 };
 app.use(cors(corsOptions));
 app.use(express.json());
