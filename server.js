@@ -49,10 +49,28 @@ app.use(session({
 
 // Middleware
 const corsOptions = {
-  origin: true, // Accepte toutes les origines
+  origin: [
+    "http://localhost:3000", 
+    "http://localhost:8081", 
+    "https://livence-project-booking.vercel.app",
+    "https://livence-project-booking-8ykrxq879-nassimbzrs-projects.vercel.app"
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "Access-Control-Request-Method",
+    "Access-Control-Request-Headers",
+    "expires",
+    "cache-control",
+    "pragma"
+  ],
+  exposedHeaders: ["Content-Range", "X-Content-Range"],
+  maxAge: 86400 // 24 heures
 };
 app.use(cors(corsOptions));
 app.use(express.json());
