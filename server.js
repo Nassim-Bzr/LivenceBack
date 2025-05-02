@@ -53,7 +53,8 @@ const corsOptions = {
     "http://localhost:3000", 
     "http://localhost:8081", 
     "https://livence-project-booking.vercel.app",
-    "https://livence-project-booking-8ykrxq879-nassimbzrs-projects.vercel.app"
+    "https://livence-project-booking-8ykrxq879-nassimbzrs-projects.vercel.app",
+    "https://www.livence.fr/"
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
